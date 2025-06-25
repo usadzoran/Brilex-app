@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>App Vente Simplifiée</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    h2 { margin-top: 30px; }
+    label { display: block; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 5px; }
+    .hidden { display: none; }
+    #facture, #confirm-message { margin-top: 20px; background: #f4f4f4; padding: 15px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+
+<h1>Application de Livraison</h1>
+
+<!-- Choix du rôle -->
+<label for="role">Choisissez votre rôle :</label>
+<select id="role" onchange="changerRole()">
+  <option value="">-- Choisissez --</option>
+  <option value="vendeur">Vendeur</option>
+  <option value="livreur">Livreur</option>
+</select>
+
+<!-- Section vendeur -->
+<div id="vendeur-section" class="hidden">
+  <h2>Vendeur</h2>
+  <label>Nom du client:</label>
+  <input id="client-name" type="text">
+
+  <label>Localisation du client (URL Google Maps):</label>
+  <input id="client-map" type="text" placeholder="https://maps.google.com/...">
+
+  <label>Produit:</label>
+  <input id="produit" type="text">
+
+  <label>Couleur:</label>
+  <input id="couleur" type="text">
+
+  <label>Type de vente:</label>
+  <select id="type">
+    <option value="détail">Détail</option>
+    <option value="gros">Gros</option>
+  </select>
+
+  <label>Prix:</label>
+  <input id="prix" type="number">
+
+  <button onclick="enregistrerFacture()">Enregistrer la facture</button>
+</div>
+
+<!-- Section livreur -->
+<div id="livreur-section" class="hidden">
+  <h2>Livreur</h2>
+  <label>Choisir un client:</label>
+  <select id="client-select" onchange="afficherFacture()"></select>
+
+  <div id="facture" class="hidden"></div>
+  <button id="btn-confirmer" class="hidden" onclick="confirmerLivraison()">Confirmer la livraison</button>
+  <div id="confirm-message" class="hidden">✅ Livraison confirmée !</div>
+</div>
+
+<script>
+const stockage = window.localStorage;
+
+function changerRole() {
+  const role = document.getElementById('role').value;
+  document.getElementById('vendeur-section').classList.add('hidden');
+  document.getElementById('livreur-section').classList.add('hidden');
+  if (role === 'vendeur') {
+    document.getElementById('vendeur-section').classList.remove('hidden');
+  } else if (role === 'livreur') {
+    chargerClients();
+    document.getElementById('livreur-section').classList.remove('hidden');
+  }
+}
+
+function enregistrerFacture() {
+  const name = document.getElementById('client-name').value;
+  const map = document.getElementById('client-map').value;
+  const produit = document.getElementById('produit').value;
+  const couleur = document.getElementById('couleur').value;
+  const type = document.getElementById('type').value;
+  const prix = parseFloat(document.getElementById('prix').value);
+
+  if (!name || !map || !produit || !couleur || !type || !prix) {
+    alert("Veuillez remplir tous les champs.");
+    return;
+  }
+
+  const data = {
+    nom: name,
+    map: map,
+    produit: produit,
+    couleur: couleur,
+    type: type,
+    prix: prix,
+    livré: false
+  };
+
+  stockage.setItem("client_" + name, JSON.stringify(data));
+  alert("✅ Facture enregistrée.");
+  document.getElementById('client-name').value = '';
+  document.getElementById('client-map').value = '';
+  document.getElementById('produit').value = '';
+  document.getElementById('couleur').value = '';
+  document.getElementById('prix').value = '';
+}
+
+function chargerClients() {
+  const select = document.getElementById('client-select');
+  select.innerHTML = '<option value="">-- Choisir --</option>';
+  for (let key in stockage) {
+    if (key.startsWith("client_")) {
+      const client = JSON.parse(stockage.getItem(key));
+      if (!client.livré) {
+        select.innerHTML += `<option value="${key}">${client.nom}</option>`;
+      }
+    }
+  }
+}
+
+function afficherFacture() {
+  const key = document.getElementById('client-select').value;
+  if (!key) return;
+  const client = JSON.parse(stockage.getItem(key));
+  const html = `
+    <b>Client:</b> ${client.nom}<br>
+    <b>Produit:</b> ${client.produit}<br>
+    <b>Couleur:</b> ${client.couleur}<br>
+    <b>Type:</b> ${client.type}<br>
+    <b>Prix:</b> ${client.prix} DA<br>
+    <b>Localisation:</b> <a href="${client.map}" target="_blank">Voir sur la carte</a>
+  `;
+  document.getElementById('facture').innerHTML = html;
+  document.getElementById('facture').classList.remove('hidden');
+  document.getElementById('btn-confirmer').classList.remove('hidden');
+  document.getElementById('confirm-message').classList.add('hidden');
+}
+
+function confirmerLivraison() {
+  const key = document.getElementById('client-select').value;
+  const client = JSON.parse(stockage.getItem(key));
+  client.livré = true;
+  stockage.setItem(key, JSON.stringify(client));
+  document.getElementById('confirm-message').classList.remove('hidden');
+  document.getElementById('facture').classList.add('hidden');
+  document.getElementById('btn-confirmer').classList.add('hidden');
+}
+</script>
+
+</body>
+</html>
